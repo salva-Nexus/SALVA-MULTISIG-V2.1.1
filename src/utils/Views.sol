@@ -16,4 +16,8 @@ abstract contract Views is Modifier {
     function isValidator(address account) external view returns (bool) {
         return _isValidator[account];
     }
+
+    function proposal(bytes32 proposalHash) external view returns (Proposals memory) {
+        return _proposals[proposalHash];
+    }
 }
