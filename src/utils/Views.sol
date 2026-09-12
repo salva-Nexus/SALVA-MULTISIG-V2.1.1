@@ -17,7 +17,19 @@ abstract contract Views is Modifier {
         return _isValidator[account];
     }
 
-    function proposal(bytes32 proposalHash) external view returns (Proposals memory) {
-        return _proposals[proposalHash];
+    function proposal(bytes32 proposalHash)
+        external
+        view
+        returns (
+            uint256 timeLock,
+            uint256 remaining,
+            uint256 isProposed,
+            uint256 isValidated,
+            uint256 isExecuted,
+            uint256 nonce
+        )
+    {
+        Proposals storage p = _proposals[proposalHash];
+        return (p.timeLock, p.remaining, p.isProposed, p.isValidated, p.isExecuted, p.nonce);
     }
 }
