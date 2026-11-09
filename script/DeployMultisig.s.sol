@@ -21,5 +21,6 @@ contract DeployMultiSig is Script {
         console.log("Validator Count:", multisig.numOfValidators());
 
         // BASE TESTNET => 0x7Fe2bB5D44bFE124A7eDbE507035246e6327CB3A
+        // BNB TESTNET => 0x8f574842E7CC0277E9256418C46A90e3398d4005
     }
 }

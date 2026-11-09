@@ -10,4 +10,5 @@ abstract contract Errors is Events {
     error MultiSig__TimelockNotElapsedOrNotValidated();
     error Multisig_ProposalExists();
     error Multisig__ProposalDoesNotExist();
+    error MultiSig__ExpiredProposal();
 }

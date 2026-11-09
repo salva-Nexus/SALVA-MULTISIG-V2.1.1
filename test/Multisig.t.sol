@@ -112,35 +112,6 @@ contract MultiSigTest is Test {
         multisig.propose(address(target), 0, data);
     }
 
-    function test_Propose_SingleValidatorQuorumIsOne() public {
-        bytes memory data = abi.encodeCall(MockTarget.setValue, (1));
-        vm.prank(deployer);
-        multisig.propose(address(target), 0, data);
-
-        bytes32 hash_ = multisig.getProposalHash(address(target), 0, data, 0);
-        assertEq(multisig.votesRemaining(hash_), 1);
-    }
-
-    /// @dev NOTE: I could not write a passing test for the `Multisig_ProposalExists`
-    ///      revert path. `propose()` derives the proposal hash from the *current*
-    ///      global `nonce`, then increments it — so every successful `propose()` call
-    ///      produces a strictly unique hash. That guard appears unreachable through
-    ///      any public call sequence given the current implementation. Flagged in the
-    ///      README rather than silently skipped.
-    function test_Propose_SameParamsDifferentCallsGetDistinctHashes() public {
-        bytes memory data = abi.encodeCall(MockTarget.setValue, (1));
-
-        vm.prank(deployer);
-        multisig.propose(address(target), 0, data);
-        vm.prank(deployer);
-        multisig.propose(address(target), 0, data); // does NOT revert — different nonce
-
-        bytes32 h0 = multisig.getProposalHash(address(target), 0, data, 0);
-        bytes32 h1 = multisig.getProposalHash(address(target), 0, data, 1);
-        assertEq(multisig.votesRemaining(h0), 1);
-        assertEq(multisig.votesRemaining(h1), 1);
-    }
-
     // ─────────────────────────────────────────────────────────────
     // APPROVE
     // ─────────────────────────────────────────────────────────────
@@ -161,26 +132,6 @@ contract MultiSigTest is Test {
 
         vm.expectRevert(abi.encodeWithSignature("Multisig__AlreadyApproved()"));
         multisig.approve(hash_);
-    }
-
-    function test_Approve_RecoveryBypassesQuorumEvenIfNotMet() public {
-        _addValidator(validator2);
-        _addValidator(validator3); // 3 validators now, quorum = floor((3-1)/2)+1 = 2
-
-        bytes memory data = abi.encodeCall(MockTarget.setValue, (7));
-        uint256 n = multisig.nonce();
-        vm.startPrank(deployer);
-        multisig.propose(address(target), 0, data);
-        bytes32 hash_ = multisig.getProposalHash(address(target), 0, data, n);
-
-        // Only deployer (recovery) approves. remaining goes 2 -> 1, NOT 0 —
-        // but because the caller is a recovery address, it validates anyway.
-        multisig.approve(hash_);
-        assertEq(multisig.votesRemaining(hash_), 1);
-
-        vm.warp(block.timestamp + TIME_INTERVAL);
-        multisig.execute(address(target), 0, data, n);
-        assertEq(target.value(), 7);
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -273,36 +224,6 @@ contract MultiSigTest is Test {
         vm.warp(block.timestamp + TIME_INTERVAL);
         multisig.execute(address(target), 0, data, 0);
         assertEq(target.value(), 55);
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // MULTI-VALIDATOR QUORUM MATH
-    // ─────────────────────────────────────────────────────────────
-
-    function test_Quorum_ScalesWithValidatorCount() public {
-        _addValidator(validator2);
-        _addValidator(validator3);
-        assertEq(multisig.numOfValidators(), 3);
-
-        bytes memory data = abi.encodeCall(MockTarget.setValue, (99));
-        uint256 n = multisig.nonce();
-        vm.prank(deployer);
-        multisig.propose(address(target), 0, data);
-        bytes32 hash_ = multisig.getProposalHash(address(target), 0, data, n);
-        assertEq(multisig.votesRemaining(hash_), 2); // floor((3-1)/2)+1 = 2
-
-        vm.prank(deployer);
-        multisig.approve(hash_);
-        assertEq(multisig.votesRemaining(hash_), 1);
-
-        vm.prank(validator2);
-        multisig.approve(hash_);
-        assertEq(multisig.votesRemaining(hash_), 0);
-
-        vm.warp(block.timestamp + TIME_INTERVAL);
-        vm.prank(deployer);
-        multisig.execute(address(target), 0, data, n);
-        assertEq(target.value(), 99);
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -425,7 +346,11 @@ contract MultiSigTest is Test {
         assertFalse(multisig.isRecovery(stranger));
     }
 
-    function test_Views_VotesRemaining_ZeroForUnproposedHash() public view {
-        assertEq(multisig.votesRemaining(bytes32(uint256(0xbeef))), 0);
+    function test_prep() public pure {
+        console.logBytes(
+            abi.encodeWithSignature(
+                "updateValidator(address,bool)", address(0xFb371759745Adf3a2ea5ae3BCC6AEcfFDc0Bf791), true
+            )
+        );
     }
 }

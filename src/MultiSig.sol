@@ -26,12 +26,12 @@ contract MultiSig is Initializable, Self {
 
     function propose(address target, uint256 value, bytes calldata data) external onlyValidators returns (bytes32) {
         bytes32 proposalHash = getProposalHash(target, value, data, nonce);
-        nonce++;
         Proposals storage p = _proposals[proposalHash];
         if (p.isProposed == 1 || p.isExecuted == 1) revert Multisig_ProposalExists();
         p.isProposed = 1;
         p.remaining = uint32((numOfValidators - 1) / 2 + 1);
         p.nonce = nonce;
+        nonce++;
         emit ProposalCreated(proposalHash, msg.sender);
         return proposalHash;
     }
@@ -64,6 +64,7 @@ contract MultiSig is Initializable, Self {
     {
         bytes32 proposalHash = getProposalHash(target, value, data, nonce);
         Proposals storage p = _proposals[proposalHash];
+        if (p.isExecuted == 1) revert MultiSig__ExpiredProposal();
         if (!_recovery[_msgSender()]) {
             if (p.isValidated == 0 || block.timestamp < p.timeLock) {
                 revert MultiSig__TimelockNotElapsedOrNotValidated();
@@ -75,5 +76,11 @@ contract MultiSig is Initializable, Self {
         (bool success, bytes memory returnData) = target.call{ value: value }(data);
         if (!success) revert MultiSig__ExecutionFailed();
         return returnData;
+    }
+
+    function cancel(bytes32 proposalHash) external onlyValidators returns (bool) {
+        Proposals storage p = _proposals[proposalHash];
+        p.isExecuted = 1;
+        return true;
     }
 }

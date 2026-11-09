@@ -2,6 +2,8 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+solc_version = "0.8.30"
+
 
 [fuzz]
 runs = 300
@@ -18,3 +20,4 @@ sort_imports = true            # Alphabetizes imports automatically
 wrap_comments = true           # Wraps long NatSpec to your line_length
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
